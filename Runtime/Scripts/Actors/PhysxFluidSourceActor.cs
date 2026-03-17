@@ -37,6 +37,7 @@ namespace PhysX5ForUnity
         {
             base.ResetObject();
             m_activeParticleIndices.Clear();
+            m_indicesDirty = true;
         }
 
         protected override void CreateNativeObject()
@@ -107,6 +108,7 @@ namespace PhysX5ForUnity
                     m_particleData.SetParticle(numActiveParticles, new Vector4(spawnLocation.x, spawnLocation.y, spawnLocation.z, m_particleMass), false);
                     m_particleData.SetVelocity(numActiveParticles, startVelocity, false);
                     m_activeParticleIndices.Add(numActiveParticles);
+                    m_indicesDirty = true;
                     
                     numActiveParticles++;
                     if (numActiveParticles >= m_numParticles) break;

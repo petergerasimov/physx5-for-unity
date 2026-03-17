@@ -126,13 +126,32 @@ namespace PhysX5ForUnity
 
             // Update active indices
             m_totalActiveIndicesCount = 0;
-            
-            // TODO: To fix the incorrect addition issue, force update each time. Should have some notification mechanism.
-            // A fluid actor can have a rendering property reference to refer to this. This can be useful for other scenarios too.
-            bool shouldUpdateIndexBuffer = true;
+
+            if (m_activeFluidIndices == null || m_activeFluidIndices.Length < m_maxNumActiveIndices)
+            {
+                m_activeFluidIndices = new int[m_maxNumActiveIndices];
+                CreateComputeBuffer(ref m_indexBuffer, sizeof(int), m_maxNumActiveIndices);
+            }
+
+            if (m_particleBuffer == null || m_particleBuffer.count < m_numParticles)
+            {
+                CreateComputeBuffer(ref m_particleBuffer, 16, m_numParticles);
+                CreateComputeBuffer(ref m_anisotropy1Buffer, sizeof(float) * 4, m_numParticles);
+                CreateComputeBuffer(ref m_anisotropy2Buffer, sizeof(float) * 4, m_numParticles);
+                CreateComputeBuffer(ref m_anisotropy3Buffer, sizeof(float) * 4, m_numParticles);
+                CreateComputeBuffer(ref m_colorsBuffer, sizeof(float) * 4, m_numParticles);
+                m_temporaryBuffer = new Vector4[m_numParticles];
+            }
+
+            bool shouldUpdateIndexBuffer = false;
             for (int i = 0; i < m_actors.Count; i++)
             {
                 PhysxParticleActor actor = m_actors[i];
+                if (actor.IndicesDirty)
+                {
+                    shouldUpdateIndexBuffer = true;
+                    actor.IndicesDirty = false;
+                }
                 List<int> actorIndices = actor.ActiveParticleIndices;
                 int actorIndicesCount = actorIndices.Count;
 
@@ -142,7 +161,7 @@ namespace PhysX5ForUnity
 
             if (shouldUpdateIndexBuffer)
             {
-                m_indexBuffer.SetData(m_activeFluidIndices);
+                m_indexBuffer.SetData(m_activeFluidIndices, 0, 0, m_indexBuffer.count);
 
                 // Use compute shader for calculating the indices directly in the buffer.
                 m_chunkAddShader.SetBuffer(0, "dataBuffer", m_indexBuffer);
@@ -194,7 +213,7 @@ namespace PhysX5ForUnity
 
                 m_bounds.center = center;
                 m_bounds.size = size;
-                m_bounds.Expand(m_pbdParticleSystem.ParticleSpacing*2);
+                m_bounds.Expand(m_pbdParticleSystem.ParticleSpacing * 2);
                 m_meshRender.bounds = m_bounds;
             }
         }
@@ -279,7 +298,7 @@ namespace PhysX5ForUnity
             {
                 get { return m_isProjectionChanged; }
             }
-            
+
             public CameraState(Camera camera)
             {
                 position = camera.transform.position;
@@ -462,7 +481,7 @@ namespace PhysX5ForUnity
                 copyBackground.GetTemporaryRT(fluidBackgroundID, -1, -1, 0);
                 copyBackground.Blit(BuiltinRenderTextureType.CurrentActive, fluidBackgroundID);
                 cam.AddCommandBuffer(CameraEvent.BeforeForwardAlpha, copyBackground);
-                
+
                 CommandBuffer drawColor = new CommandBuffer
                 {
                     name = "Draw fluid color"
@@ -487,7 +506,7 @@ namespace PhysX5ForUnity
                     copyBackground = copyBackground,
                     drawColor = drawColor
                 };
-                
+
                 m_cameraCommands.Add(cam, cameraCommands);
                 if (m_cameraCommands.Count == 1) Camera.onPostRender += RemoveCommandBuffer;
             }
@@ -498,7 +517,7 @@ namespace PhysX5ForUnity
                 Graphics.SetRenderTarget(depth);
 
                 GL.Clear(false, true, new Color(cam.farClipPlane, 0, 0, 0), 1.0f);
-                
+
                 // resetting these buffers to fix the not rendering issue when refocusing on the window
                 m_prepareFluidMaterial.SetInteger("_IndexCount", m_totalActiveIndicesCount);
                 m_prepareFluidMaterial.SetBuffer("_Indices", m_indexBuffer);
@@ -550,7 +569,7 @@ namespace PhysX5ForUnity
                         Graphics.Blit(null, m_prepareFluidMaterial, depthBlurPass);
                     }
                 }
-                
+
                 if (m_depthFilterType == DepthFilterType.Bilateral || (m_depthFilterType == DepthFilterType.NarrowRange && !m_narrowFilter1D))
                 {
                     // Swap between depth and depthTemp for (iteration - 1) times

@@ -34,6 +34,12 @@ namespace PhysX5ForUnity
             get { return m_activeParticleIndices; }
         }
 
+        public bool IndicesDirty
+        {
+            get { return m_indicesDirty; }
+            set { m_indicesDirty = value; }
+        }
+
         public List<ParticleRigidFilterPair> ParticleRigidFilterPairs
         {
             // A copy of the particle-rigid filter pairs list
@@ -197,6 +203,7 @@ namespace PhysX5ForUnity
             {
                 m_activeParticleIndices.Add(i);
             }
+            m_indicesDirty = true;
         }
 
         protected void AddToDependencies()
@@ -250,6 +257,7 @@ namespace PhysX5ForUnity
         protected ParticleData m_particleData;
         protected int m_numParticles = 1000;
         protected List<int> m_activeParticleIndices;
+        protected bool m_indicesDirty = true;
         protected List<ParticleRigidFilterPair> m_particleRigidFilterPairs = new List<ParticleRigidFilterPair>();
     }
 }
