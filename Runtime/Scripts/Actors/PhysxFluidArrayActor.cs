@@ -53,6 +53,16 @@ namespace PhysX5ForUnity
                 return;
             }
 
+            if (m_geometry.NativeObjectPtr == IntPtr.Zero)
+            {
+                m_geometry.Recreate();
+                if (m_geometry.NativeObjectPtr == IntPtr.Zero)
+                {
+                    Debug.LogError("Geometry native object is not initialized.");
+                    return;
+                }
+            }
+
             float particleSpacing = m_pbdParticleSystem.ParticleSpacing;
             float particleInvMass = 1 / (m_density * 1.333f * 3.14159f * particleSpacing * particleSpacing * particleSpacing);
 

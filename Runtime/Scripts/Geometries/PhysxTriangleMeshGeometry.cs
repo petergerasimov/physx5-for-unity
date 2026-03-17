@@ -25,6 +25,10 @@ namespace PhysX5ForUnity
             }
 
             Vector3[] vertices = m_mesh.vertices;
+            if (vertices.Length == 0)
+            {
+                throw new InvalidOperationException("Mesh has no vertices.");
+            }
             int[] indices = m_mesh.triangles;
             float[] shapeParams = new float[3];
             shapeParams[0] = transform.lossyScale.x;
